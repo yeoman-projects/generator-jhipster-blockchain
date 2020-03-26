@@ -1,10 +1,10 @@
 const chalk = require('chalk');
-const packagejs = require('../../package.json');
 const semver = require('semver');
 const BaseGenerator = require('generator-jhipster/generators/generator-base');
 const jhipsterConstants = require('generator-jhipster/generators/generator-constants');
 const jhipsterUtils = require('generator-jhipster/generators/utils');
 const shelljs = require('shelljs');
+const packagejs = require('../../package.json');
 
 module.exports = class extends BaseGenerator {
     get initializing() {
@@ -15,7 +15,7 @@ module.exports = class extends BaseGenerator {
                 }
             },
             readConfig() {
-                this.jhipsterAppConfig = this.getJhipsterAppConfig();
+                this.jhipsterAppConfig = this.getAllJhipsterConfig();
                 if (!this.jhipsterAppConfig) {
                     this.error('Can\'t read .yo-rc.json');
                 }
@@ -50,7 +50,7 @@ module.exports = class extends BaseGenerator {
         ];
 
         this.prompt(prompts).then((props) => {
-            this.jdl = props.jdl
+            this.jdl = props.jdl;
             done();
         });
     }
@@ -85,8 +85,8 @@ module.exports = class extends BaseGenerator {
         const webappDir = jhipsterConstants.CLIENT_MAIN_SRC_DIR;
 
         // Import JDL
-        if (this.jdl !== 'Do not import JDL'){
-            shelljs.exec(`jhipster import-jdl ${this.jdl}`);
+        if (this.jdl !== 'Do not import JDL') {
+            shelljs.exec(`jhipster import-jdl ${this.jdl} --force`);
         }
 
         // Write blockchain communication module package
@@ -96,10 +96,10 @@ module.exports = class extends BaseGenerator {
         this.template('fabric-network', 'fabric-network');
 
         // Get entities in JSON format
-        var json_entities = this.getExistingEntities();
+        const jsonEntities = this.getExistingEntities();
 
         // Write resource file for each entity
-        json_entities.forEach(entity => {
+        jsonEntities.forEach((entity) => {
             this.template('template-file.java', `${javaDir}web/rest/${entity.name}Resource.java`);
         });
     }
@@ -110,12 +110,10 @@ module.exports = class extends BaseGenerator {
         const resourceDir = jhipsterConstants.SERVER_MAIN_RES_DIR;
         const packageName = this.jhipsterAppConfig.packageName;
 
-        let logMsg =
-            `To install your dependencies manually, run: ${chalk.yellow.bold(`${this.clientPackageManager} install`)}`;
+        let logMsg = `To install your dependencies manually, run: ${chalk.yellow.bold(`${this.clientPackageManager} install`)}`;
 
         if (this.clientFramework === 'angular1') {
-            logMsg =
-                `To install your dependencies manually, run: ${chalk.yellow.bold(`${this.clientPackageManager} install & bower install`)}`;
+            logMsg = `To install your dependencies manually, run: ${chalk.yellow.bold(`${this.clientPackageManager} install & bower install`)}`;
         }
         const injectDependenciesAndConstants = (err) => {
             if (err) {
@@ -138,15 +136,15 @@ module.exports = class extends BaseGenerator {
         }
 
         // Check Gradle is used
-        if (this.buildTool !== 'gradle'){
-            this.log("ERROR: You must use Gradle as build tool to use this generator.");
-            throw new Error("Gradle is not the build tool used here.")
+        if (this.buildTool !== 'gradle') {
+            this.log('ERROR: You must use Gradle as build tool to use this generator.');
+            throw new Error('Gradle is not the build tool used here.');
         }
 
         // Check SQL is used
-        if (this.databaseType !== 'sql'){
-            this.log("ERROR: You must use SQL as database type to use this generator.");
-            throw new Error("SQL is not the database type used here.")
+        if (this.databaseType !== 'sql') {
+            this.log('ERROR: You must use SQL as database type to use this generator.');
+            throw new Error('SQL is not the database type used here.');
         }
 
         // Write package statement
@@ -315,13 +313,13 @@ import ${packageName}.network.networkException.StateAlreadySet;\n`]
         }, this);
 
         // Get entities in JSON format
-        var json_entities = this.getExistingEntities();
+        const jsonEntities = this.getExistingEntities();
 
         // Write resource file for each entity
-        json_entities.forEach(entity => {
+        jsonEntities.forEach((entity) => {
             this.log(`Writing ${entity.name} entity file`);
 
-            var lowercase = `${entity.name}`.toLowerCase();
+            const lowercase = `${entity.name}`.toLowerCase();
 
             // Write file content
             jhipsterUtils.rewriteFile({
@@ -653,17 +651,16 @@ public class ${entity.name}Resource {
         // Set log level to WARN
         jhipsterUtils.rewriteFile({
             file: `${resourceDir}logback-spring.xml`,
-            needle: `    <logger name="sun.rmi.transport" level="WARN"/>`,
+            needle: '    <logger name="sun.rmi.transport" level="WARN"/>',
             splicable: [`<logger name="io" level="WARN"/>
 <logger name="i.n.h.c.http2.Http2ConnectionHandler" level="WARN"/>\n`]}, this);
 
         // Write description and Hyperledger section in readme
         jhipsterUtils.rewriteFile({
-            file: `README.md`,
+            file: 'README.md',
             needle: '## Development',
             splicable: ['This is a simple web application to manage entities on a blockchain using an Hyperledger Fabric network v1.4.\n\nWhen you create, update or delete entities using this sample application, requests are sent to the Hyperledger network to update the blockchain ledger. For this to happen, Hyperledger must be running.\n\n## Hyperledger\n\nTo run this application you will need to run Hyperledger. See the readme in `./fabric-network/README.md` to know how.\n']
         }, this);
-
     }
 
     end() {
