@@ -193,7 +193,7 @@ module.exports = class extends BaseGenerator {
 
         // Write HeaderUtil for the rest controllers
         jhipsterUtils.rewriteFile({
-            file: `${javaDir}web/rest/util/$HeaderUtil.java`,
+            file: `${javaDir}web/rest/util/HeaderUtil.java`,
             needle: '',
             splicable: [`package  ${packageName}.web.rest.util;
 
