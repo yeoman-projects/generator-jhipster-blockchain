@@ -46,11 +46,28 @@ module.exports = class extends BaseGenerator {
                 name: 'jdl',
                 message: 'You should have imported a JDL to be able to manage entities on the blockchain. Enter the path of your JDL file to import it.',
                 default: 'Do not import JDL'
-            }
+            },
+            {
+                type: 'list',
+                name: 'hyperledgerVersion',
+                message: 'Chose a version of Hyperledger Fabric',
+                choices: [
+                    'Fabric 1.4',
+                    'Fabric 2.0'
+                ],
+            },
+            {
+                type: 'input',
+                name: 'channelPrompt',
+                message: 'Chose a channel name for your blockchain',
+                default: 'myChannel'
+            },
         ];
 
         this.prompt(prompts).then((props) => {
             this.jdl = props.jdl;
+            this.hyperledgerVersion = props.hyperledgerVersion;
+            this.channelPrompt = props.channelPrompt;
             done();
         });
     }
@@ -93,7 +110,14 @@ module.exports = class extends BaseGenerator {
         this.template('network', `${javaDir}network`);
 
         // Write fabric-network folder
-        this.template('fabric-network', 'fabric-network');
+        if (this.hyperledgerVersion !== 'Fabric 2.0') {
+            this.template('fabric-network', 'fabric-network');
+        } else {
+            this.template('fabric-network-2.0', 'fabric-network');
+        }
+
+        // Add the util folder for the rest controllers
+        this.template('util', `${javaDir}web/rest/util`);
 
         // Get entities in JSON format
         const jsonEntities = this.getExistingEntities();
@@ -146,6 +170,80 @@ module.exports = class extends BaseGenerator {
             this.log('ERROR: You must use SQL as database type to use this generator.');
             throw new Error('SQL is not the database type used here.');
         }
+
+        // Change the channel name in the blockchain to use the user specified name
+        jhipsterUtils.replaceContent({
+            file: 'fabric-network/network/byfn.sh',
+            pattern: 'channelName',
+            content: this.channelPrompt,
+        }, this);
+
+        jhipsterUtils.replaceContent({
+            file: 'fabric-network/network/scripts/script.sh',
+            pattern: 'channelName',
+            content: this.channelPrompt,
+        }, this);
+
+        // Change the channel name in the backend to use the user specified name
+        jhipsterUtils.replaceContent({
+            file: `${javaDir}/network/Config.java`,
+            pattern: 'channelName',
+            content: this.channelPrompt,
+        }, this);
+
+        // Write HeaderUtil for the rest controllers
+        jhipsterUtils.rewriteFile({
+            file: `${javaDir}web/rest/util/HeaderUtil.java`,
+            needle: '',
+            splicable: [`package  ${packageName}.web.rest.util;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+
+/**
+ * Utility class for HTTP headers creation.
+ */
+public final class HeaderUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(HeaderUtil.class);
+
+    private static final String APPLICATION_NAME = "blockchainApp";
+
+    private HeaderUtil() {
+    }
+
+    public static HttpHeaders createAlert(String message, String param) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-" + APPLICATION_NAME + "-alert", message);
+        headers.add("X-" + APPLICATION_NAME + "-params", param);
+        return headers;
+    }
+
+    public static HttpHeaders createEntityCreationAlert(String entityName, String param) {
+        return createAlert("A new " + entityName + " is created with identifier " + param, param);
+    }
+
+    public static HttpHeaders createEntityUpdateAlert(String entityName, String param) {
+        return createAlert("A " + entityName + " is updated with identifier " + param, param);
+    }
+
+    public static HttpHeaders createEntityDeletionAlert(String entityName, String param) {
+        System.out.println("IIIIIIINNNNNNNNNNN");
+        System.out.println("DIDIER DONSEZ");
+        return createAlert("A " + entityName + " is deleted with identifier " + param, param);
+    }
+
+    public static HttpHeaders createFailureAlert(String entityName, String errorKey, String defaultMessage) {
+        log.error("Entity processing failed, {}", defaultMessage);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-" + APPLICATION_NAME + "-error", defaultMessage);
+        headers.add("X-" + APPLICATION_NAME + "-params", entityName);
+        return headers;
+    }
+}
+`]
+        }, this);
 
         // Write package statement
         jhipsterUtils.rewriteFile({
@@ -274,7 +372,7 @@ import ${packageName}.network.Util;\n`]
         // Write import
         jhipsterUtils.rewriteFile({
             file: `${javaDir}network/request/Add.java`,
-            needle: `import org.hyperledger.fabric.sdk.ChaincodeID;`,
+            needle: 'import org.hyperledger.fabric.sdk.ChaincodeID;',
             splicable: [`import ${packageName}.network.Config;
 import ${packageName}.network.networkException.EntityAlreadyExist;\n`]
         }, this);
@@ -291,7 +389,7 @@ import ${packageName}.network.networkException.StateAlreadySet;\n`]
         // Write import
         jhipsterUtils.rewriteFile({
             file: `${javaDir}network/request/Get.java`,
-            needle: `import org.hyperledger.fabric.sdk.ProposalResponse;`,
+            needle: 'import org.hyperledger.fabric.sdk.ProposalResponse;',
             splicable: [`import ${packageName}.network.Config;
 import ${packageName}.network.networkException.EntityNotFound;\n`]
         }, this);
@@ -307,9 +405,9 @@ import ${packageName}.network.networkException.StateAlreadySet;\n`]
 
         // Write Fabric SDK Maven dependency
         jhipsterUtils.rewriteFile({
-            file: `build.gradle`,
+            file: 'build.gradle',
             needle: '    //jhipster-needle-gradle-dependency - JHipster will add additional dependencies here',
-            splicable: [`// https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java\ncompile group: 'org.hyperledger.fabric-sdk-java', name: 'fabric-sdk-java', version: '1.4.0'`]
+            splicable: ['// https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java\ncompile group: \'org.hyperledger.fabric-sdk-java\', name: \'fabric-sdk-java\', version: \'1.4.0\'']
         }, this);
 
         // Get entities in JSON format
@@ -653,7 +751,8 @@ public class ${entity.name}Resource {
             file: `${resourceDir}logback-spring.xml`,
             needle: '    <logger name="sun.rmi.transport" level="WARN"/>',
             splicable: [`<logger name="io" level="WARN"/>
-<logger name="i.n.h.c.http2.Http2ConnectionHandler" level="WARN"/>\n`]}, this);
+<logger name="i.n.h.c.http2.Http2ConnectionHandler" level="WARN"/>\n`]
+        }, this);
 
         // Write description and Hyperledger section in readme
         jhipsterUtils.rewriteFile({

@@ -38,7 +38,7 @@ public class Config {
 
     public static final String ORDERER_NAME = "orderer.example.com";
 
-    public static final String CHANNEL_NAME = "mychannel";
+    public static final String CHANNEL_NAME = "channelName";
 
     public static final String ORG1_PEER_0 = "peer0.org1.example.com";
 
