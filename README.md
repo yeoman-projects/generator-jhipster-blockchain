@@ -2,7 +2,7 @@
 [![NPM version][npm-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Dependency Status][daviddm-image]][daviddm-url]
 > JHipster module to set a simple web application and an Hyperledger Fabric network v1.4 to manage entities on a blockchain.
 
-This is a module to set a simple web application and an Hyperledger Fabric network v1.4 to manage entities on a blockchain. This is a [JHipster](http://jhipster.github.io/) module, that is meant to be used in a JHipster application.
+This is a module to set a simple web application and an Hyperledger Fabric network v1.4 or v2.0 to manage entities on a blockchain. This is a [JHipster](http://jhipster.github.io/) module, that is meant to be used in a JHipster application.
 
 This generator has been designed by the [UGAChain](https://gitlab.com/ugachain) team which consists of four students from the Grenoble Alpes University. This generator is based on the UGAChain project design, UGAChain is a platform relying on an Hyperledger blockchain network to provide diplomas deliverers such as universities with a diplomas certification service.
 
